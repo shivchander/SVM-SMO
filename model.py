@@ -8,6 +8,7 @@ __license__ = "MIT"
 
 import numpy as np
 import random as rnd
+import matplotlib.pyplot as plt
 
 
 def get_rnd_int(a, b, z):
@@ -32,9 +33,12 @@ class SvmSmo:
         self.w = None
         self.C = C
         self.epsilon = epsilon
+        self.X = None
+        self.y = None
 
     def fit(self, X, y):
-
+        self.X = X
+        self.y = y
         n, m = X.shape[0], X.shape[1]
         alpha = np.zeros((n))
         kernel = self.kernel
@@ -75,7 +79,6 @@ class SvmSmo:
         self.b = self.calc_b(X, y, self.w)
         self.w = self.calc_w(alpha, y, X)
 
-
     def get_U_V(self, C, alpha_new_j, alpha_new_i, y_j, y_i):
         # upper and lower bounds
         if y_i != y_j:
@@ -99,3 +102,52 @@ class SvmSmo:
     # Prediction error
     def E(self, x_k, y_k, w, b):
         return self.activation(x_k, w, b) - y_k
+
+    def visualize(self, save=False):
+        for label in [1, -1]:
+            row_ix = np.where(self.y == label)
+            if label == 1:
+                plt.scatter(self.X[row_ix, 0], self.X[row_ix, 1], color='r', label='+1')
+            else:
+                plt.scatter(self.X[row_ix, 0], self.X[row_ix, 1], color='b', label='-1')
+
+        # hyperplane = x.w+b
+        # v = x.w+b
+        # psv = 1
+        # nsv = -1
+        # dec = 0
+        def hyperplane(x, w, b, v):
+            return (-w[0]*x-b+v) / w[1]
+
+        min_feature_value = np.min(self.X)
+        max_feature_value = np.max(self.X)
+
+        datarange = (min_feature_value*0.9, max_feature_value*1.1)
+        hyp_x_min = datarange[0]
+        hyp_x_max = datarange[1]
+
+        # (w.x+b) = 1
+        # positive support vector hyperplane
+        psv1 = hyperplane(hyp_x_min, self.w, self.b, 1)
+        psv2 = hyperplane(hyp_x_max, self.w, self.b, 1)
+        plt.plot([hyp_x_min, hyp_x_max], [psv1, psv2], 'k')
+
+        # (w.x+b) = -1
+        # negative support vector hyperplane
+        nsv1 = hyperplane(hyp_x_min, self.w, self.b, -1)
+        nsv2 = hyperplane(hyp_x_max, self.w, self.b, -1)
+        plt.plot([hyp_x_min, hyp_x_max], [nsv1, nsv2], 'k')
+
+        # (w.x+b) = 0
+        # positive support vector hyperplane
+        db1 = hyperplane(hyp_x_min, self.w, self.b, 0)
+        db2 = hyperplane(hyp_x_max, self.w, self.b, 0)
+        plt.plot([hyp_x_min, hyp_x_max], [db1, db2], 'y--')
+
+        plt.title('Maximal Margin Hyperplane')
+        plt.xlabel('x1')
+        plt.ylabel('x2')
+        plt.legend()
+        if save:
+            plt.savefig('svm_hyperplane.png')
+        plt.show()
